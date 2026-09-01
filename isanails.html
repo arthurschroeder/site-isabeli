@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha agenda</title>
+    <style>
+        * { box-sizing: border-box; }
+        button {
+            font-family: inherit;
+            letter-spacing: 0.1px;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
+        }
+        button:focus-visible {
+            outline: 3px solid #a9d9ff;
+            outline-offset: 3px;
+        }
+        button:active { transform: scale(0.97); }
+        :root {
+            --theme-page-bg: #f4f5fb;
+            --theme-text: #252b3d;
+            --theme-primary: #6257e8;
+            --theme-primary-dark: #5147d0;
+            --theme-soft: #f8f8ff;
+            --theme-card: #fff;
+            --theme-border: #e8eaf1;
+            --theme-event-bg: #e4f7ef;
+            --theme-event-text: #16835d;
+        }
+        body[data-theme="ocean"] {
+            --theme-page-bg: #eaf6f8;
+            --theme-text: #163b4a;
+            --theme-primary: #087f8c;
+            --theme-primary-dark: #06636d;
+            --theme-soft: #effbfc;
+            --theme-border: #cde5e8;
+            --theme-event-bg: #dff4ed;
+            --theme-event-text: #14745e;
+        }
+        body[data-theme="forest"] {
+            --theme-page-bg: #eef5ed;
+            --theme-text: #263d2d;
+            --theme-primary: #3b7d4c;
+            --theme-primary-dark: #2c6039;
+            --theme-soft: #f2f8f1;
+            --theme-border: #d4e5d2;
+            --theme-event-bg: #e0f1df;
+            --theme-event-text: #347342;
+        }
+        body[data-theme="sunset"] {
+            --theme-page-bg: #fff3eb;
+            --theme-text: #4b2e2a;
+            --theme-primary: #c45b3c;
+            --theme-primary-dark: #9f432b;
+            --theme-soft: #fff7f2;
+            --theme-border: #f0d8ca;
+            --theme-event-bg: #fff0d9;
+            --theme-event-text: #a45b20;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--theme-page-bg);
+            font-family: Arial, sans-serif;
+            color: var(--theme-text);
+        }
+        .agenda {
+            position: relative;
+            max-width: 900px;
+            margin: 34px auto 20px;
+        }
+        .agenda-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .agenda button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--theme-primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .agenda button:hover { background: var(--theme-primary-dark); }
+        .agenda button:active { transform: translateY(1px); }
+        .agenda-header > button {
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+        .agenda-header > button:hover {
+            box-shadow: 0 6px 14px #6257e83d;
+            transform: translateY(-2px);
+        }
+        .calendar-title {
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+        .calendar-grid.month-changing {
+            animation: monthReveal 320ms ease both;
+        }
+        .calendar-grid.month-changing .day {
+            animation: dayReveal 320ms ease both;
+        }
+        @keyframes monthReveal {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes dayReveal {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .weekdays,
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .weekdays div {
+            text-align: center;
+            font-weight: bold;
+            color: #858b9b;
+            padding: 8px;
+        }
+        .day {
+            min-height: 85px;
+            padding: 8px;
+            border: 1px solid var(--theme-border);
+            border-radius: 8px;
+            background: var(--theme-card);
+            cursor: pointer;
+        }
+        .day:hover { background: var(--theme-soft); }
+        .day.empty {
+            background: #f8f8fa;
+            cursor: default;
+        }
+        .day.today { border: 2px solid #6257e8; }
+        .day-number { font-weight: bold; }
+        .event-item {
+            margin-top: 6px;
+            padding: 4px 6px;
+            border-radius: 5px;
+            background: var(--theme-event-bg);
+            color: var(--theme-event-text);
+            font-size: 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .day-record-button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 5px 6px !important;
+            border: 1px solid #dedff0 !important;
+            background: #f8f8ff !important;
+            color: #6257e8 !important;
+            font-size: 10px;
+        }
+        .day-record-button:hover { background: #eeecff !important; }
+        .client-options {
+            max-width: 900px;
+            margin: 23px auto 0;
+            padding: 22px;
+            border: 1px solid #e8eaf1;
+            border-radius: 17px;
+            background: #fff;
+            box-shadow: 0 5px 18px #252b3d08;
+        }
+        .client-options,
+        .client-brand,
+        .product-area,
+        .admin-panel {
+            width: min(100%, 900px);
+        }
+        .client-options h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+        .option-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .option-buttons button {
+            border: 1px solid #dedff0;
+            border-radius: 9px;
+            padding: 11px 14px;
+            background: #f8f8ff;
+            color: #6257e8;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .option-buttons button.selected {
+            background: #6257e8;
+            color: white;
+        }
+        .confirm-choice {
+            border: 0;
+            border-radius: 9px;
+            padding: 12px 17px;
+            background: #2db680;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+            .confirm-choice:hover {
+                background: #229b6b;
+                box-shadow: 0 7px 15px #2db68040;
+                transform: translateY(-2px);
+            }
+            .confirm-choice::before {
+                content: '→';
+                margin-right: 7px;
+                font-size: 17px;
+            }
+        #choice-status {
+            margin-top: 12px;
+            color: #858b9b;
+            font-size: 13px;
+        }
+        .client-form {
+            display: none;
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid #e8eaf1;
+        }
+        .client-form.visible {
+            display: block;
+            animation: appointmentReveal 320ms ease both;
+        }
+        @keyframes appointmentReveal {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .client-form > button[type="submit"] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            min-height: 46px;
+            padding: 12px 19px;
+            border: 0;
+            border-radius: 11px;
+            background: var(--theme-primary);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 7px 16px #6257e842;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+        .client-form > button[type="submit"]::before {
+            content: '✓';
+            display: grid;
+            width: 23px;
+            height: 23px;
+            place-items: center;
+            border: 1px solid #ffffff80;
+            border-radius: 50%;
+            font-size: 14px;
+        }
+        .client-form > button[type="submit"]:hover {
+            background: var(--theme-primary-dark);
+            box-shadow: 0 10px 20px #6257e85c;
+            transform: translateY(-2px);
+        }
+        .client-form-fields {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin: 14px 0;
+            align-items: start;
+        }
+        .client-form label {
+            display: grid;
+            gap: 6px;
+            color: #858b9b;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .client-form input {
+            width: 100%;
+            height: 43px;
+            padding: 11px 12px;
+            border: 1px solid #dedff0;
+            border-radius: 8px;
+            color: #252b3d;
+            font: inherit;
+        }
+        .client-form input:focus {
+            outline: 2px solid #c9c5ff;
+            border-color: #6257e8;
+        }
+        .available-slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 8px;
+        }
+        .available-slots button {
+            min-width: 72px;
+            padding: 8px 10px;
+            border: 1px solid var(--theme-primary);
+            border-radius: 20px;
+            background: var(--theme-soft);
+            color: var(--theme-primary);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .available-slots button:hover,
+        .available-slots button.selected {
+            background: var(--theme-primary);
+            color: white;
+        }
+        .available-slots button.unavailable {
+            border-color: #d9dbe4;
+            background: #f0f1f5;
+            color: #a1a5b1;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+        .slot-caption {
+            margin: 10px 0 0;
+            color: #858b9b;
+            font-size: 12px;
+        }
+        .schedule-client {
+            display: block;
+            width: 100%;
+            margin-top: 22px;
+            padding: 17px 24px !important;
+            border: 2px solid #d58b63 !important;
+            border-radius: 999px !important;
+            background: #b85d70 !important;
+            color: #fffaf8 !important;
+            font-size: 18px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 8px 18px #b85d7040, inset 0 1px #ffffff66;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+        .schedule-client:hover {
+            background: #9f4b5f !important;
+            box-shadow: 0 12px 24px #b85d705c, inset 0 1px #ffffff80;
+            transform: translateY(-2px);
+        }
+        .schedule-client:active {
+            transform: scale(0.98);
+        }
+        .schedule-client::before {
+            content: '▣';
+            display: inline-grid;
+            width: 27px;
+            height: 27px;
+            margin-right: 7px;
+            place-items: center;
+            border: 1px solid #f3d28b;
+            border-radius: 50%;
+            color: #f3d28b;
+            font-size: 13px;
+        }
+        .schedule-client::after {
+            content: 'Encontre seu melhor horário';
+            display: block;
+            margin-top: 3px;
+            color: #f9dfb0;
+            font-size: 11px;
+            font-weight: normal;
+        }
+        .form-status {
+            margin: 10px 0 0;
+            color: #16835d;
+            font-size: 13px;
+        }
+        .product-area,
+        .admin-panel {
+            max-width: 900px;
+            margin: 23px auto 0;
+            padding: 22px;
+            border: 1px solid #e8eaf1;
+            border-radius: 17px;
+            background: #fff;
+            box-shadow: 0 5px 18px #252b3d08;
+        }
+        .client-options .product-area {
+            max-width: none;
+            margin: 24px 0 0;
+            padding: 20px 0 0;
+            border: 0;
+            border-top: 1px solid var(--theme-border);
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .product-area h2,
+        .admin-panel h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+        .product-area.client-products-locked {
+            opacity: 0.58;
+        }
+        .product-area.client-products-locked .product-list,
+        .product-area.client-products-locked #confirm-products {
+            pointer-events: none;
+        }
+        .product-area.client-products-unlocked {
+            animation: productUnlock 360ms ease both;
+        }
+        @keyframes productUnlock {
+            from { opacity: 0.62; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .product-lock-message {
+            margin: 10px 0 0;
+            color: #858b9b;
+            font-size: 13px;
+        }
+        .client-brand {
+            max-width: 900px;
+            margin: 23px auto 0;
+            padding: 12px;
+            overflow: hidden;
+            border: 1px solid var(--theme-border);
+            border-radius: 17px;
+            background: var(--theme-card);
+            box-shadow: 0 5px 18px #252b3d08;
+        }
+        .client-brand img {
+            display: block;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto;
+            border: 5px solid #fff;
+            border-radius: 50%;
+            object-fit: cover;
+            object-position: center;
+            box-shadow: 0 8px 20px #252b3d24;
+        }
+        .product-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .product-card {
+            position: relative;
+            padding: 13px;
+            border: 2px solid #dedff0;
+            border-radius: 12px;
+            background: var(--theme-soft);
+            cursor: pointer;
+            transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+        }
+        .product-card::after {
+            content: 'Selecionar';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #858b9b;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .product-card:hover {
+            border-color: var(--theme-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 15px #252b3d14;
+        }
+        .product-card.selected {
+            border-color: var(--theme-primary);
+            background: #eeecff;
+            box-shadow: 0 7px 15px #252b3d1c;
+        }
+        .product-card.selected::after {
+            content: 'Selecionado';
+            color: var(--theme-primary);
+        }
+        .product-card strong,
+        .product-card span { display: block; }
+        .product-card span {
+            margin-top: 5px;
+            color: var(--theme-event-text);
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .admin-panel {
+            position: relative;
+            border: 1px solid #ead3d0;
+            border-top: 5px solid #b85d70;
+            background: linear-gradient(145deg, #fffaf8, #fff 58%, #fff4f1);
+            box-shadow: 0 14px 32px #b85d7017;
+        }
+        .admin-tabs {
+            display: flex;
+            gap: 6px;
+            margin: 22px 0 20px;
+            padding: 6px;
+            border: 1px solid #efdeda;
+            border-radius: 13px;
+            background: #fff5f2;
+        }
+        .admin-tab {
+            flex: 1;
+            border: 0 !important;
+            border-radius: 7px !important;
+            background: transparent !important;
+            color: var(--theme-text) !important;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .admin-tab.active {
+            background: var(--theme-primary) !important;
+            color: white !important;
+            box-shadow: 0 6px 14px #b85d7038;
+            transform: translateY(-1px);
+        }
+        .admin-tab-panel { display: none; }
+        .admin-tab-panel.active { display: block; }
+        .billing-summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .billing-card {
+            padding: 18px;
+            border: 1px solid #efdeda;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .billing-card small {
+            display: block;
+            color: #858b9b;
+            font-size: 12px;
+        }
+        .billing-card strong {
+            display: block;
+            margin-top: 6px;
+            color: #b85d70;
+            font-size: 26px;
+        }
+        .billing-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .billing-record {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 11px 13px;
+            border-radius: 9px;
+            background: #fff5f2;
+        }
+        .billing-record strong { color: #16835d; white-space: nowrap; }
+        .admin-form,
+        .product-form { margin-top: 18px; }
+        .admin-tab-panel {
+            padding: 4px 2px 2px;
+            animation: adminPanelReveal 240ms ease both;
+        }
+        @keyframes adminPanelReveal {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .admin-form > button[type="submit"] {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 10px;
+            background: #2db680;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 6px 14px #2db6803d;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+        .admin-form > button[type="submit"]::before {
+            content: '✓';
+            display: grid;
+            width: 22px;
+            height: 22px;
+            place-items: center;
+            border: 1px solid #ffffff80;
+            border-radius: 50%;
+        }
+        .admin-form > button[type="submit"]:hover {
+            background: #229b6b;
+            box-shadow: 0 9px 18px #2db68052;
+            transform: translateY(-2px);
+        }
+        .admin-form h3,
+        .product-form h3 {
+            margin: 0 0 12px;
+            font-size: 15px;
+        }
+        .hours-grid {
+            display: grid;
+            gap: 8px;
+        }
+        .hours-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr auto;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border: 1px solid #f0dfdb;
+            border-radius: 9px;
+            background: #fff;
+        }
+        .hours-row label { font-weight: bold; }
+        .hours-row input[type="time"] {
+            padding: 8px;
+            border: 1px solid #dedff0;
+            border-radius: 7px;
+        }
+        .hours-row input[type="checkbox"] { accent-color: #6257e8; }
+        .product-form-fields {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr auto;
+            gap: 10px;
+        }
+        .product-form input {
+            min-width: 0;
+            padding: 10px 11px;
+            border: 1px solid #dedff0;
+            border-radius: 8px;
+            font: inherit;
+        }
+        .product-form button[type="submit"] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 16px;
+            background: var(--theme-primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 6px 14px #6257e83d;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+        .product-form button[type="submit"]::before {
+            content: '+';
+            display: grid;
+            width: 22px;
+            height: 22px;
+            place-items: center;
+            border: 1px solid #ffffff80;
+            border-radius: 50%;
+            font-size: 18px;
+            line-height: 1;
+        }
+        .product-form button[type="submit"]:hover {
+            background: var(--theme-primary-dark);
+            box-shadow: 0 9px 18px #6257e852;
+            transform: translateY(-2px);
+        }
+        .admin-product-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .admin-product-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 1px solid #f0dfdb;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 4px 10px #b85d700d;
+        }
+        .remove-product {
+            padding: 7px 10px !important;
+            background: #d94f68 !important;
+        }
+        .admin-status {
+            margin: 10px 0 0;
+            color: #16835d;
+            font-size: 13px;
+        }
+        .theme-selector {
+            position: relative;
+            top: auto;
+            right: auto;
+        }
+        .theme-selector h3 { display: none; }
+        .theme-toggle {
+            display: grid;
+            width: 48px;
+            height: 48px;
+            margin: 0;
+            padding: 0 !important;
+            place-items: center;
+            border: 3px solid var(--theme-card) !important;
+            border-radius: 50% !important;
+            background: var(--theme-primary) !important;
+            box-shadow: 0 6px 16px #252b3d2e;
+            color: white;
+            font-size: 22px;
+            line-height: 1;
+            transition: transform 160ms ease, box-shadow 160ms ease;
+        }
+        .theme-toggle:hover {
+            background: var(--theme-primary-dark) !important;
+            box-shadow: 0 8px 20px #252b3d40;
+            transform: rotate(12deg) scale(1.06);
+        }
+        .theme-options {
+            position: absolute;
+            top: 58px;
+            right: 0;
+            min-width: 150px;
+            padding: 8px;
+            border: 1px solid var(--theme-border);
+            border-radius: 10px;
+            background: var(--theme-card);
+            box-shadow: 0 8px 24px #252b3d24;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .calendar-next-area {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        .calendar-next-area .theme-toggle { order: -1; }
+        .theme-option {
+            border: 1px solid var(--theme-border) !important;
+            background: var(--theme-soft) !important;
+            color: var(--theme-text) !important;
+        }
+        .theme-option.active {
+            border-color: var(--theme-primary) !important;
+            background: var(--theme-primary) !important;
+            color: white !important;
+        }
+        .records-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 0;
+            min-height: 44px;
+            padding: 10px 16px !important;
+            border: 2px solid var(--theme-primary) !important;
+            border-radius: 10px !important;
+            background: transparent !important;
+            color: var(--theme-primary) !important;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+        }
+        .records-button::before { content: '≡'; font-size: 20px; line-height: 1; }
+        .records-button:hover {
+            background: var(--theme-primary) !important;
+            color: white !important;
+            box-shadow: 0 7px 16px #6257e83d;
+            transform: translateY(-2px);
+        }
+        .records-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .record-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 1px solid #efdeda;
+            border-left: 4px solid #b85d70;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 4px 10px #b85d700d;
+        }
+        .payment-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            color: #858b9b;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .payment-status input { accent-color: #2db680; }
+        .payment-status.paid { color: #16835d; }
+        .remove-record {
+            flex-shrink: 0;
+            padding: 7px 10px !important;
+            background: #d94f68 !important;
+        }
+        .remove-record:hover { background: #b83d54 !important; }
+        .hidden { display: none !important; }
+        .login-panel {
+            max-width: 900px;
+            margin: 0 auto 8px;
+            text-align: right;
+        }
+        .admin-access-button {
+            padding: 6px 9px !important;
+            border: 0;
+            background: transparent !important;
+            color: #858b9b !important;
+            font-size: 11px;
+            font-weight: normal !important;
+        }
+        .admin-access-button:hover {
+            color: #6257e8 !important;
+            text-decoration: underline;
+        }
+        .login-content {
+            margin-top: 6px;
+            padding: 18px 22px;
+            border-radius: 12px;
+            background: #252b3d;
+            color: white;
+            text-align: left;
+        }
+        .login-panel h2 { margin: 0 0 6px; font-size: 18px; }
+        .login-panel p { margin: 0 0 14px; color: #d8dbea; font-size: 13px; }
+        .login-form {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr auto;
+            gap: 10px;
+        }
+        .login-form input {
+            min-width: 0;
+            padding: 11px 12px;
+            border: 0;
+            border-radius: 8px;
+            font: inherit;
+        }
+        .login-form button { background: #2db680; }
+        .login-form button:hover { background: #229b6b; }
+        .login-status { margin: 10px 0 0 !important; color: #ffb5c0 !important; }
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #efdeda;
+        }
+        .admin-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: #8d5360;
+        }
+        .admin-header h2::before {
+            content: '✦';
+            display: grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border-radius: 50%;
+            background: #f3d28b;
+            color: #8d5360;
+            font-size: 15px;
+        }
+        .logout-button { background: #d94f68 !important; }
+        .logout-button:hover { background: #b83d54 !important; }
+        .remove-product,
+        .remove-record,
+        .logout-button {
+            border: 0 !important;
+            border-radius: 9px !important;
+            color: white !important;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px #d94f6833;
+        }
+        .remove-product:hover,
+        .remove-record:hover,
+        .logout-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px #d94f6852;
+        }
+        .login-form button,
+        .client-form button,
+        .hours-row button {
+            border: 0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .help-agent-button {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            z-index: 20;
+            display: grid;
+            width: 58px;
+            height: 58px;
+            place-items: center;
+            border: 3px solid #fff !important;
+            border-radius: 50% !important;
+            background: #b85d70 !important;
+            color: #f3d28b !important;
+            cursor: pointer;
+            font-size: 25px;
+            box-shadow: 0 8px 22px #252b3d38;
+            animation: helpPulse 2.8s ease-in-out infinite;
+        }
+        .help-agent-button:hover {
+            background: #9f4b5f !important;
+            box-shadow: 0 11px 26px #252b3d52;
+            transform: translateY(-3px);
+        }
+        .help-agent-bubble {
+            position: fixed;
+            right: 28px;
+            bottom: 88px;
+            z-index: 20;
+            padding: 10px 14px;
+            border: 1px solid #edc2bd;
+            border-radius: 14px 14px 3px 14px;
+            background: #fffaf8;
+            color: #8d5360;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 7px 18px #252b3d24;
+            animation: helpBubbleReveal 360ms ease both;
+        }
+        .help-agent-bubble::after {
+            content: '';
+            position: absolute;
+            right: 15px;
+            bottom: -7px;
+            width: 12px;
+            height: 12px;
+            border-right: 1px solid #edc2bd;
+            border-bottom: 1px solid #edc2bd;
+            background: #fffaf8;
+            transform: rotate(45deg);
+        }
+        .help-agent-bubble.hidden { display: none; }
+        @keyframes helpBubbleReveal {
+            from { opacity: 0; transform: translateY(8px) scale(0.92); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .help-agent-panel {
+            position: fixed;
+            right: 22px;
+            bottom: 92px;
+            z-index: 19;
+            width: min(360px, calc(100vw - 32px));
+            padding: 18px;
+            border: 1px solid #edc2bd;
+            border-radius: 16px;
+            background: #fffaf8;
+            box-shadow: 0 12px 30px #252b3d2e;
+            animation: helpPanelReveal 240ms ease both;
+        }
+        @keyframes helpPulse {
+            0%, 100% { box-shadow: 0 8px 22px #252b3d38; }
+            50% { box-shadow: 0 8px 22px #b85d7066, 0 0 0 7px #b85d7017; }
+        }
+        @keyframes helpPanelReveal {
+            from { opacity: 0; transform: translateY(12px) scale(0.96); transform-origin: bottom right; }
+            to { opacity: 1; transform: translateY(0) scale(1); transform-origin: bottom right; }
+        }
+        .help-agent-response { transition: opacity 160ms ease, transform 160ms ease; }
+        .help-agent-panel h2 { margin: 0 0 4px; color: #b85d70; font-size: 18px; }
+        .help-agent-panel p { margin: 0 0 12px; color: #77717a; font-size: 13px; }
+        .help-agent-options { display: grid; gap: 7px; }
+        .help-agent-options button {
+            padding: 9px 11px;
+            border: 1px solid #edc2bd;
+            border-radius: 9px;
+            background: #fff;
+            color: #8d5360;
+            cursor: pointer;
+            text-align: left;
+            font-weight: bold;
+        }
+        .help-agent-options button:hover { background: #fff0ed; border-color: #b85d70; }
+        .help-agent-response {
+            min-height: 42px;
+            margin: 12px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fff0ed;
+            color: #65434a;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .help-agent-form { display: flex; gap: 7px; }
+        .help-agent-form input {
+            min-width: 0;
+            flex: 1;
+            padding: 9px 10px;
+            border: 1px solid #edc2bd;
+            border-radius: 8px;
+            font: inherit;
+        }
+        .help-agent-form button {
+            padding: 9px 12px;
+            border: 0;
+            border-radius: 8px;
+            background: #b85d70;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .agenda-header { flex-wrap: wrap; }
+            .calendar-title { order: -1; width: 100%; }
+            .day { min-height: 70px; padding: 6px; }
+            .weekdays div { padding: 6px 2px; font-size: 12px; }
+            .client-form-fields { grid-template-columns: 1fr; }
+            .hours-row { grid-template-columns: 1fr 1fr 1fr; }
+            .hours-row label { grid-column: 1 / -1; }
+            .product-form-fields { grid-template-columns: 1fr; }
+            .login-form { grid-template-columns: 1fr; }
+            .calendar-next-area { gap: 4px; }
+            .calendar-next-area .theme-toggle { width: 40px; height: 40px; }
+            .theme-options { position: relative; top: auto; right: auto; }
+            .admin-tabs { flex-direction: column; }
+            .billing-summary { grid-template-columns: 1fr; }
+            .billing-record { flex-direction: column; gap: 5px; }
+            .help-agent-button { right: 14px; bottom: 14px; }
+            .help-agent-panel { right: 14px; bottom: 84px; }
+            .help-agent-bubble { right: 20px; bottom: 80px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section class="login-panel">
+        <button class="admin-access-button" id="show-admin-login" type="button">Acesso administrativo</button>
+        <div class="login-content hidden" id="login-content">
+            <h2>Login do administrador</h2>
+            <p>Entre para alterar horários e produtos.</p>
+            <form class="login-form" id="admin-login-form">
+                <input id="admin-email" type="email" placeholder="E-mail do administrador" required>
+                <input id="admin-password" type="password" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p class="login-status" id="login-status" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <section class="client-brand" id="client-brand" aria-label="Logo da agenda">
+        <img
+            src="logo-isabel.png"
+            alt="Logo Isabel Nails"
+            onerror="this.onerror=null; this.src='file:///C:/Users/Pichau/Desktop/logo-isabel.png';"
+        >
+    </section>
+
+    <section class="client-options" id="client-scheduling">
+        <button class="schedule-client" id="show-client-form" type="button">Agendar atendimento</button>
+        <form class="client-form" id="client-form">
+            <div class="client-form-fields">
+                <label>
+                    Nome do cliente
+                    <input id="client-name" type="text" placeholder="Digite o nome" required>
+                </label>
+                <label>
+                    Data
+                    <input id="client-date" type="date" required>
+                </label>
+                <label>
+                    Horário
+                    <input id="client-time" type="time" required>
+                    <div class="available-slots" id="available-slots"></div>
+                    <span class="slot-caption">Escolha um horário disponível</span>
+                </label>
+            </div>
+            <button type="submit">Confirmar agendamento</button>
+            <p class="form-status" id="client-form-status" aria-live="polite"></p>
+        </form>
+        <section class="product-area client-products-locked" id="client-products">
+            <h2>Escolha seu produto</h2>
+            <p id="product-instruction">Informe nome, data e horário antes de escolher:</p>
+            <div class="product-list" id="product-list"></div>
+            <button class="confirm-choice" id="confirm-products" type="button">Confirmar produtos</button>
+            <div class="form-status" id="product-status" aria-live="polite"></div>
+            <p class="product-lock-message" id="product-lock-message">Preencha os dados do atendimento para liberar os produtos.</p>
+        </section>
+    </section>
+
+    <section class="admin-panel hidden" id="admin-panel">
+        <div class="admin-header">
+            <h2>Área do administrador</h2>
+            <button class="logout-button" id="admin-logout" type="button">Sair</button>
+        </div>
+        <p>Configure os horários disponíveis e os produtos dos clientes.</p>
+
+        <main id="agenda-calendar" class="agenda">
+            <div class="agenda-header">
+                <button id="previous-month" type="button">Anterior</button>
+                <div id="calendar-title" class="calendar-title"></div>
+                <div class="calendar-next-area">
+                    <div class="theme-selector">
+                        <h3>Tema da agenda</h3>
+                        <button class="theme-toggle" id="theme-toggle" type="button" title="Escolher tema" aria-label="Escolher tema">✦</button>
+                        <div class="theme-options hidden" id="theme-options">
+                            <button class="theme-option" data-theme="classic" type="button">Clássico</button>
+                            <button class="theme-option" data-theme="ocean" type="button">Oceano</button>
+                            <button class="theme-option" data-theme="forest" type="button">Floresta</button>
+                            <button class="theme-option" data-theme="sunset" type="button">Pôr do sol</button>
+                        </div>
+                        <p class="admin-status" id="theme-status" aria-live="polite"></p>
+                    </div>
+                    <button id="next-month" type="button">Próximo</button>
+                </div>
+            </div>
+            <div class="weekdays">
+                <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div>
+                <div>Qui</div><div>Sex</div><div>Sáb</div>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <br>
+            <button id="add-event" type="button">Adicionar compromisso</button>
+        </main>
+
+        <nav class="admin-tabs" aria-label="Menu administrativo">
+            <button class="admin-tab active" data-tab="hours" type="button">Horários</button>
+            <button class="admin-tab" data-tab="products" type="button">Produtos</button>
+            <button class="admin-tab" data-tab="records" type="button">Registros</button>
+            <button class="admin-tab" data-tab="billing" type="button">Faturamento</button>
+        </nav>
+
+        <section class="admin-tab-panel active" data-panel="hours">
+            <form class="admin-form" id="hours-form">
+                <h3>Horários de atendimento</h3>
+                <div class="hours-grid" id="hours-grid"></div>
+                <button type="submit">Salvar horários</button>
+                <p class="admin-status" id="hours-status" aria-live="polite"></p>
+            </form>
+        </section>
+
+        <section class="admin-tab-panel" data-panel="products">
+            <form class="product-form" id="product-form">
+                <h3>Cadastrar produto</h3>
+                <div class="product-form-fields">
+                    <input id="new-product-name" type="text" placeholder="Nome do produto" required>
+                    <input id="new-product-price" type="number" min="0" step="0.01" placeholder="Preço (R$)" required>
+                    <button type="submit">Adicionar produto</button>
+                </div>
+            </form>
+            <div class="admin-product-list" id="admin-product-list"></div>
+        </section>
+
+        <section class="admin-tab-panel" data-panel="records">
+            <button class="records-button" id="show-records" type="button">Ver todos os registros</button>
+            <div class="records-list hidden" id="records-list"></div>
+        </section>
+
+        <section class="admin-tab-panel" data-panel="billing">
+            <h3>Resumo do faturamento</h3>
+            <div class="billing-summary">
+                <div class="billing-card"><small>Total faturado</small><strong id="billing-total">R$ 0,00</strong></div>
+                <div class="billing-card"><small>Atendimentos</small><strong id="billing-count">0</strong></div>
+            </div>
+            <div class="billing-list" id="billing-list"></div>
+        </section>
+    </section>
+
+    <button class="help-agent-button" id="help-agent-button" type="button" title="Abrir ajuda" aria-label="Abrir agente de ajuda">?</button>
+    <button class="help-agent-bubble" id="help-agent-bubble" type="button">Precisa de ajuda?</button>
+    <aside class="help-agent-panel hidden" id="help-agent-panel" aria-label="Agente de ajuda">
+        <h2>Agente Isabel</h2>
+        <p>Olá! Posso ensinar você a usar a agenda.</p>
+        <div class="help-agent-options">
+            <button type="button" data-help="agendar">Como faço um agendamento?</button>
+            <button type="button" data-help="produto">Como escolho um produto?</button>
+            <button type="button" data-help="horario">Como vejo os horários?</button>
+            <button type="button" data-help="admin">Como acesso o administrador?</button>
+        </div>
+        <div class="help-agent-response" id="help-agent-response" aria-live="polite">Escolha uma opção acima ou escreva sua dúvida.</div>
+        <form class="help-agent-form" id="help-agent-form">
+            <input id="help-agent-input" type="text" placeholder="Digite sua dúvida" aria-label="Digite sua dúvida">
+            <button type="submit">Enviar</button>
+        </form>
+    </aside>
+
+    <script>
+        (() => {
+            const root = document.getElementById('agenda-calendar');
+            const title = root.querySelector('#calendar-title');
+            const grid = root.querySelector('#calendar-grid');
+            let currentDate = new Date();
+            let events = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+
+            function dateKey(year, month, day) {
+                return [year, String(month + 1).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
+            }
+
+            function renderCalendar() {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                title.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                grid.innerHTML = '';
+                grid.classList.remove('month-changing');
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+
+                for (let index = 0; index < firstDay; index++) {
+                    const empty = document.createElement('div');
+                    empty.className = 'day empty';
+                    grid.appendChild(empty);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const key = dateKey(year, month, day);
+                    const cell = document.createElement('div');
+                    cell.className = 'day';
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        cell.classList.add('today');
+                    }
+                    const number = document.createElement('div');
+                    number.className = 'day-number';
+                    number.textContent = day;
+                    cell.appendChild(number);
+                    (events[key] || []).forEach(eventName => {
+                        const event = document.createElement('div');
+                        event.className = 'event-item';
+                        event.textContent = eventName;
+                        cell.appendChild(event);
+                    });
+                    const recordsButton = document.createElement('button');
+                    recordsButton.className = 'day-record-button';
+                    recordsButton.type = 'button';
+                    recordsButton.textContent = 'Ver registros';
+                    recordsButton.addEventListener('click', event => {
+                        event.stopPropagation();
+                        showDayRecords(key);
+                    });
+                    cell.appendChild(recordsButton);
+                    cell.addEventListener('click', () => addEvent(key));
+                    grid.appendChild(cell);
+                }
+                requestAnimationFrame(() => grid.classList.add('month-changing'));
+            }
+
+            function addEvent(selectedDate = null) {
+                let key = selectedDate;
+                if (!key) {
+                    const day = prompt('Dia do compromisso:');
+                    if (!day || !/^\d+$/.test(day)) return;
+                    const dayNumber = Number(day);
+                    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+                    if (dayNumber < 1 || dayNumber > daysInMonth) {
+                        alert('Dia inválido para este mês.');
+                        return;
+                    }
+                    key = dateKey(currentDate.getFullYear(), currentDate.getMonth(), dayNumber);
+                }
+                const name = prompt('Nome do compromisso:');
+                if (name && name.trim()) {
+                    if (!events[key]) events[key] = [];
+                    events[key].push(name.trim());
+                    localStorage.setItem('agendaEvents', JSON.stringify(events));
+                    renderCalendar();
+                }
+            }
+
+            root.querySelector('#previous-month').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+            root.querySelector('#next-month').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+            root.querySelector('#add-event').addEventListener('click', () => addEvent());
+            window.addEventListener('storage', event => {
+                if (event.key === 'agendaEvents') {
+                    events = JSON.parse(event.newValue || '{}');
+                    renderCalendar();
+                }
+            });
+            renderCalendar();
+        })();
+
+        const clientForm = document.getElementById('client-form');
+        function timeToMinutes(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        document.getElementById('show-client-form').addEventListener('click', () => {
+            clientForm.classList.toggle('visible');
+            if (clientForm.classList.contains('visible')) {
+                document.getElementById('client-name').focus();
+            }
+        });
+        clientForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const clientName = document.getElementById('client-name').value.trim();
+            const clientDate = document.getElementById('client-date').value;
+            const clientTime = document.getElementById('client-time').value;
+            const chosenProducts = [...document.querySelectorAll('.product-card.selected strong')]
+                .map(product => product.textContent);
+            if (!chosenProducts.length) {
+                alert('Escolha um produto antes de agendar.');
+                return;
+            }
+            const [year, month, day] = clientDate.split('-').map(Number);
+            const dateKey = clientDate;
+            const formattedDate = new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+            const selectedDay = new Date(year, month - 1, day).getDay();
+            const selectedHours = hours[selectedDay];
+            if (!selectedHours.active) {
+                alert('Não há atendimento disponível neste dia.');
+                return;
+            }
+            if (clientTime < selectedHours.start || clientTime > selectedHours.end) {
+                alert('Escolha um horário entre ' + selectedHours.start + ' e ' + selectedHours.end + '.');
+                return;
+            }
+            const savedEvents = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+            if (!savedEvents[dateKey]) savedEvents[dateKey] = [];
+            const requestedMinutes = timeToMinutes(clientTime);
+            const conflictingEvent = savedEvents[dateKey].find(savedEvent => {
+                const timeMatch = savedEvent.match(/ - (\d{2}:\d{2})(?: -|$)/);
+                return timeMatch && Math.abs(requestedMinutes - timeToMinutes(timeMatch[1])) < 120;
+            });
+            if (conflictingEvent) {
+                alert('Este horário está dentro do intervalo de 2 horas de outro atendimento. Escolha outro horário.');
+                return;
+            }
+            const eventName = clientName + ' - ' + clientTime + ' - ' + chosenProducts.join(', ');
+            const priceByName = Object.fromEntries(products.map(product => [product.name, Number(product.price)]));
+            const amount = chosenProducts.reduce((sum, productName) => sum + (priceByName[productName] || 0), 0);
+            savedEvents[dateKey].push(eventName);
+            localStorage.setItem('agendaEvents', JSON.stringify(savedEvents));
+            const billingRecords = JSON.parse(localStorage.getItem('agendaBilling') || '[]');
+            billingRecords.push({ date: dateKey, description: eventName, amount, paid: false });
+            localStorage.setItem('agendaBilling', JSON.stringify(billingRecords));
+            document.getElementById('client-form-status').textContent =
+                'Atendimento de ' + clientName + ' salvo para ' + formattedDate + ' às ' + clientTime + '.';
+            clientForm.reset();
+            document.getElementById('client-form').classList.remove('visible');
+            document.getElementById('calendar-grid').innerHTML = '';
+            window.location.reload();
+        });
+
+        const defaultProducts = [
+            { name: 'Consulta inicial', price: 50 },
+            { name: 'Atendimento completo', price: 100 }
+        ];
+        const weekDays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        let products = JSON.parse(localStorage.getItem('agendaProducts') || 'null') || defaultProducts;
+        let hours = JSON.parse(localStorage.getItem('agendaHours') || 'null') ||
+            weekDays.map(day => ({ day, active: day !== 'Domingo', start: '08:00', end: '18:00' }));
+
+        const clientProductsPanel = document.getElementById('client-products');
+        const productLockMessage = document.getElementById('product-lock-message');
+        function updateProductAccess() {
+            const wasLocked = clientProductsPanel.classList.contains('client-products-locked');
+            const fieldsComplete = document.getElementById('client-name').value.trim() &&
+                document.getElementById('client-date').value &&
+                document.getElementById('client-time').value;
+            clientProductsPanel.classList.toggle('client-products-locked', !fieldsComplete);
+            clientProductsPanel.classList.toggle('client-products-unlocked', Boolean(fieldsComplete));
+            productLockMessage.textContent = fieldsComplete
+                ? 'Agora escolha o produto do atendimento.'
+                : 'Preencha os dados do atendimento para liberar os produtos.';
+            if (wasLocked && fieldsComplete) {
+                clientProductsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function renderAvailableSlots() {
+            const date = document.getElementById('client-date').value;
+            const slots = document.getElementById('available-slots');
+            slots.innerHTML = '';
+            if (!date) return;
+            const selectedDay = new Date(date + 'T12:00:00').getDay();
+            const selectedHours = hours[selectedDay];
+            if (!selectedHours.active) {
+                slots.textContent = 'Não há atendimento neste dia.';
+                return;
+            }
+            const savedEvents = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+            const bookedTimes = (savedEvents[date] || []).map(description => {
+                const timeMatch = description.match(/ - (\d{2}:\d{2})(?: -|$)/);
+                return timeMatch ? timeToMinutes(timeMatch[1]) : null;
+            }).filter(time => time !== null);
+            for (let minutes = timeToMinutes(selectedHours.start); minutes <= timeToMinutes(selectedHours.end); minutes += 120) {
+                const time = String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+                const slot = document.createElement('button');
+                slot.type = 'button';
+                slot.textContent = time;
+                const unavailable = bookedTimes.some(booked => Math.abs(minutes - booked) < 120);
+                if (unavailable) {
+                    slot.className = 'unavailable';
+                    slot.disabled = true;
+                    slot.title = 'Horário indisponível';
+                } else {
+                    slot.addEventListener('click', () => {
+                        document.getElementById('client-time').value = time;
+                        slots.querySelectorAll('button').forEach(button => button.classList.remove('selected'));
+                        slot.classList.add('selected');
+                        updateProductAccess();
+                    });
+                }
+                slots.appendChild(slot);
+            }
+        }
+
+        function renderProducts() {
+            const productList = document.getElementById('product-list');
+            const adminProductList = document.getElementById('admin-product-list');
+            productList.innerHTML = '';
+            adminProductList.innerHTML = '';
+            products.forEach((product, index) => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = '<strong>' + product.name + '</strong><span>R$ ' + Number(product.price).toFixed(2).replace('.', ',') + '</span>';
+                card.addEventListener('click', () => card.classList.toggle('selected'));
+                productList.appendChild(card);
+
+                const item = document.createElement('div');
+                item.className = 'admin-product-item';
+                item.innerHTML = '<span><strong>' + product.name + '</strong> - R$ ' + Number(product.price).toFixed(2).replace('.', ',') + '</span>';
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-product';
+                removeButton.type = 'button';
+                removeButton.textContent = 'Excluir';
+                removeButton.addEventListener('click', () => {
+                    products.splice(index, 1);
+                    localStorage.setItem('agendaProducts', JSON.stringify(products));
+                    renderProducts();
+                });
+                item.appendChild(removeButton);
+                adminProductList.appendChild(item);
+            });
+        }
+
+        function renderRecords() {
+            const recordsList = document.getElementById('records-list');
+            const savedEvents = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+            const billingRecords = JSON.parse(localStorage.getItem('agendaBilling') || '[]');
+            const records = Object.entries(savedEvents).flatMap(([date, dayEvents]) =>
+                dayEvents.map((description, index) => ({ date, description, index }))
+            ).sort((first, second) => (first.date + first.description).localeCompare(second.date + second.description));
+            recordsList.innerHTML = '';
+            if (!records.length) {
+                recordsList.textContent = 'Nenhum atendimento registrado.';
+                return;
+            }
+            records.forEach(record => {
+                const [year, month, day] = record.date.split('-').map(Number);
+                const formattedDate = new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+                const item = document.createElement('div');
+                item.className = 'record-item';
+                const description = document.createElement('span');
+                description.textContent = formattedDate + ' - ' + record.description;
+                item.appendChild(description);
+                item.appendChild(createPaymentControl(record.date, record.description, billingRecords));
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-record';
+                removeButton.type = 'button';
+                removeButton.textContent = 'Remover';
+                removeButton.addEventListener('click', () => removeRecord(record.date, record.index));
+                item.appendChild(removeButton);
+                recordsList.appendChild(item);
+            });
+        }
+
+        function createPaymentControl(date, description, billingRecords) {
+            const billingRecord = billingRecords.find(record => record.date === date && record.description === description);
+            const label = document.createElement('label');
+            label.className = 'payment-status' + (billingRecord && billingRecord.paid ? ' paid' : '');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = Boolean(billingRecord && billingRecord.paid);
+            checkbox.addEventListener('change', () => {
+                const currentRecords = JSON.parse(localStorage.getItem('agendaBilling') || '[]');
+                let currentRecord = currentRecords.find(record => record.date === date && record.description === description);
+                if (!currentRecord) {
+                    currentRecord = { date, description, amount: 0, paid: false };
+                    currentRecords.push(currentRecord);
+                }
+                currentRecord.paid = checkbox.checked;
+                localStorage.setItem('agendaBilling', JSON.stringify(currentRecords));
+                label.classList.toggle('paid', checkbox.checked);
+                label.lastChild.textContent = checkbox.checked ? 'Pago' : 'Não pago';
+            });
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(checkbox.checked ? 'Pago' : 'Não pago'));
+            return label;
+        }
+
+        function renderBilling() {
+            const records = JSON.parse(localStorage.getItem('agendaBilling') || '[]');
+            const savedEvents = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+            let billingChanged = false;
+            Object.entries(savedEvents).forEach(([date, dayEvents]) => {
+                dayEvents.forEach(description => {
+                    if (!records.some(record => record.date === date && record.description === description)) {
+                        records.push({ date, description, amount: 0, paid: false });
+                        billingChanged = true;
+                    }
+                });
+            });
+            if (billingChanged) localStorage.setItem('agendaBilling', JSON.stringify(records));
+            const total = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+            const billingList = document.getElementById('billing-list');
+            billingList.innerHTML = '';
+            records.forEach(record => {
+                const item = document.createElement('div');
+                item.className = 'billing-record';
+                item.innerHTML = '<span>' + record.date.split('-').reverse().join('/') + ' - ' + record.description + '</span><strong>R$ ' + Number(record.amount || 0).toFixed(2).replace('.', ',') + '</strong>';
+                item.appendChild(createPaymentControl(record.date, record.description, records));
+                billingList.appendChild(item);
+            });
+            document.getElementById('billing-total').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+            document.getElementById('billing-count').textContent = records.length;
+            if (!records.length) billingList.textContent = 'Nenhum faturamento registrado.';
+        }
+
+        function removeRecord(date, index) {
+            if (!confirm('Remover este agendamento?')) return;
+            const savedEvents = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+            if (!savedEvents[date]) return;
+            const removedDescription = savedEvents[date][index];
+            savedEvents[date].splice(index, 1);
+            if (!savedEvents[date].length) delete savedEvents[date];
+            localStorage.setItem('agendaEvents', JSON.stringify(savedEvents));
+            const billingRecords = JSON.parse(localStorage.getItem('agendaBilling') || '[]');
+            const matchingRecord = billingRecords.find(record => record.date === date && record.description === removedDescription);
+            if (matchingRecord) {
+                billingRecords.splice(billingRecords.indexOf(matchingRecord), 1);
+                localStorage.setItem('agendaBilling', JSON.stringify(billingRecords));
+            }
+            window.location.reload();
+        }
+
+        function showDayRecords(selectedDate) {
+            const recordsList = document.getElementById('records-list');
+            const showRecordsButton = document.getElementById('show-records');
+            const savedEvents = JSON.parse(localStorage.getItem('agendaEvents') || '{}');
+            const [year, month, day] = selectedDate.split('-').map(Number);
+            const formattedDate = new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+            const dayEvents = savedEvents[selectedDate] || [];
+            recordsList.innerHTML = '';
+            if (!dayEvents.length) {
+                recordsList.textContent = 'Nenhum atendimento registrado em ' + formattedDate + '.';
+            } else {
+                const billingRecords = JSON.parse(localStorage.getItem('agendaBilling') || '[]');
+                dayEvents.forEach((description, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'record-item';
+                    const recordDescription = document.createElement('span');
+                    recordDescription.textContent = formattedDate + ' - ' + description;
+                    item.appendChild(recordDescription);
+                    item.appendChild(createPaymentControl(selectedDate, description, billingRecords));
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'remove-record';
+                    removeButton.type = 'button';
+                    removeButton.textContent = 'Remover';
+                    removeButton.addEventListener('click', () => removeRecord(selectedDate, index));
+                    item.appendChild(removeButton);
+                    recordsList.appendChild(item);
+                });
+            }
+            recordsList.classList.remove('hidden');
+            showRecordsButton.textContent = 'Ver todos os registros';
+            recordsList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        const hoursGrid = document.getElementById('hours-grid');
+        hours.forEach((item, index) => {
+            hoursGrid.insertAdjacentHTML('beforeend',
+                '<div class="hours-row"><label><input type="checkbox" data-day="' + index + '" ' +
+                (item.active ? 'checked' : '') + '> ' + item.day + '</label>' +
+                '<input type="time" data-start="' + index + '" value="' + item.start + '">' +
+                '<input type="time" data-end="' + index + '" value="' + item.end + '"><span>até</span></div>');
+        });
+        document.getElementById('hours-form').addEventListener('submit', event => {
+            event.preventDefault();
+            hours = hours.map((item, index) => ({
+                ...item,
+                active: document.querySelector('[data-day="' + index + '"]').checked,
+                start: document.querySelector('[data-start="' + index + '"]').value,
+                end: document.querySelector('[data-end="' + index + '"]').value
+            }));
+            localStorage.setItem('agendaHours', JSON.stringify(hours));
+            document.getElementById('hours-status').textContent = 'Horários salvos com sucesso.';
+        });
+        document.getElementById('product-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const nameInput = document.getElementById('new-product-name');
+            const priceInput = document.getElementById('new-product-price');
+            products.push({ name: nameInput.value.trim(), price: Number(priceInput.value) });
+            localStorage.setItem('agendaProducts', JSON.stringify(products));
+            nameInput.value = '';
+            priceInput.value = '';
+            renderProducts();
+        });
+        document.getElementById('client-date').addEventListener('change', () => {
+            renderAvailableSlots();
+            updateProductAccess();
+        });
+        document.getElementById('client-name').addEventListener('input', updateProductAccess);
+        document.getElementById('client-time').addEventListener('change', () => {
+            document.querySelectorAll('.available-slots button').forEach(button => {
+                button.classList.toggle('selected', button.textContent === document.getElementById('client-time').value);
+            });
+            updateProductAccess();
+        });
+        document.getElementById('confirm-products').addEventListener('click', () => {
+            const selected = [...document.querySelectorAll('.product-card.selected strong')]
+                .map(product => product.textContent);
+            if (!selected.length) {
+                document.getElementById('product-status').textContent = 'Selecione pelo menos um produto.';
+                return;
+            }
+            document.getElementById('product-status').textContent = 'Produtos escolhidos: ' + selected.join(', ');
+            document.getElementById('client-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.querySelector('#client-form button[type="submit"]').focus();
+        });
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.admin-tab').forEach(item => {
+                    item.classList.toggle('active', item === tab);
+                });
+                document.querySelectorAll('.admin-tab-panel').forEach(panel => {
+                    panel.classList.toggle('active', panel.dataset.panel === tab.dataset.tab);
+                });
+                if (tab.dataset.tab === 'billing') renderBilling();
+            });
+        });
+        document.getElementById('show-records').addEventListener('click', event => {
+            const recordsList = document.getElementById('records-list');
+            recordsList.classList.toggle('hidden');
+            event.target.textContent = recordsList.classList.contains('hidden')
+                ? 'Ver todos os registros'
+                : 'Ocultar registros';
+            if (!recordsList.classList.contains('hidden')) renderRecords();
+        });
+        renderProducts();
+
+        function applyTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('agendaTheme', theme);
+            document.querySelectorAll('.theme-option').forEach(button => {
+                button.classList.toggle('active', button.dataset.theme === theme);
+            });
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const themeOptions = document.getElementById('theme-options');
+            const themeToggle = document.getElementById('theme-toggle');
+            themeOptions.classList.toggle('hidden');
+            themeToggle.title = themeOptions.classList.contains('hidden') ? 'Escolher tema' : 'Fechar temas';
+            themeToggle.setAttribute('aria-label', themeToggle.title);
+        });
+        document.querySelectorAll('.theme-option').forEach(button => {
+            button.addEventListener('click', () => {
+                applyTheme(button.dataset.theme);
+                document.getElementById('theme-status').textContent = 'Tema salvo com sucesso.';
+            });
+        });
+        applyTheme(localStorage.getItem('agendaTheme') || 'classic');
+
+        const helpPanel = document.getElementById('help-agent-panel');
+        const helpButton = document.getElementById('help-agent-button');
+        const helpBubble = document.getElementById('help-agent-bubble');
+        const helpResponse = document.getElementById('help-agent-response');
+        const helpAnswers = {
+            agendar: 'Clique em Agendar atendimento, informe seu nome, escolha a data e selecione um horário disponível. Depois escolha o produto e confirme.',
+            produto: 'Depois de preencher nome, data e horário, os produtos serão liberados. Clique no cartão do produto desejado e depois em Confirmar produtos.',
+            horario: 'Os horários aparecem depois que você escolhe uma data. Horários ocupados ficam bloqueados e existe um intervalo mínimo de 2 horas entre atendimentos.',
+            admin: 'Clique em Acesso administrativo e entre com o e-mail e a senha cadastrados. O calendário e as configurações aparecem somente para o administrador.'
+        };
+        helpButton.addEventListener('click', () => {
+            helpPanel.classList.toggle('hidden');
+        });
+        helpBubble.addEventListener('click', () => {
+            helpBubble.classList.add('hidden');
+            helpPanel.classList.remove('hidden');
+        });
+        window.setTimeout(() => helpBubble.classList.add('hidden'), 5000);
+        document.querySelectorAll('[data-help]').forEach(button => {
+            button.addEventListener('click', () => {
+                helpResponse.textContent = helpAnswers[button.dataset.help];
+            });
+        });
+        document.getElementById('help-agent-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const question = document.getElementById('help-agent-input').value.toLowerCase();
+            const answer = question.includes('produto') ? helpAnswers.produto
+                : question.includes('horário') || question.includes('horario') ? helpAnswers.horario
+                : question.includes('admin') || question.includes('login') ? helpAnswers.admin
+                : helpAnswers.agendar;
+            helpResponse.textContent = answer;
+            event.target.reset();
+        });
+
+        const adminAccount = JSON.parse(localStorage.getItem('agendaAdminAccount') || 'null') || {
+            email: 'isabelisilveira49@gmail.com',
+            password: 'Isa1107'
+        };
+        const loginPanel = document.querySelector('.login-panel');
+        const adminPanel = document.getElementById('admin-panel');
+        const calendarPanel = document.getElementById('agenda-calendar');
+        const clientScheduling = document.getElementById('client-scheduling');
+        const clientBrand = document.getElementById('client-brand');
+        const helpAgentButton = document.getElementById('help-agent-button');
+        const helpAgentBubble = document.getElementById('help-agent-bubble');
+        const loginStatus = document.getElementById('login-status');
+        const loginContent = document.getElementById('login-content');
+
+        function setAdminAccess(isLoggedIn) {
+            adminPanel.classList.toggle('hidden', !isLoggedIn);
+            calendarPanel.classList.toggle('hidden', !isLoggedIn);
+            clientScheduling.classList.toggle('hidden', isLoggedIn);
+            clientBrand.classList.toggle('hidden', isLoggedIn);
+            clientProductsPanel.classList.toggle('hidden', isLoggedIn);
+            helpAgentButton.classList.toggle('hidden', isLoggedIn);
+            helpAgentBubble.classList.toggle('hidden', isLoggedIn);
+            helpPanel.classList.add('hidden');
+            loginPanel.classList.toggle('hidden', isLoggedIn);
+            loginContent.classList.add('hidden');
+            if (isLoggedIn) {
+                renderRecords();
+                renderBilling();
+            }
+        }
+
+        document.getElementById('show-admin-login').addEventListener('click', () => {
+            loginContent.classList.toggle('hidden');
+            if (!loginContent.classList.contains('hidden')) {
+                document.getElementById('admin-email').focus();
+            }
+        });
+
+        document.getElementById('admin-login-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value;
+            if (email === adminAccount.email && password === adminAccount.password) {
+                sessionStorage.setItem('agendaAdminLoggedIn', 'true');
+                setAdminAccess(true);
+            } else {
+                loginStatus.textContent = 'E-mail ou senha incorretos.';
+            }
+        });
+        document.getElementById('admin-logout').addEventListener('click', () => {
+            sessionStorage.removeItem('agendaAdminLoggedIn');
+            setAdminAccess(false);
+        });
+        setAdminAccess(sessionStorage.getItem('agendaAdminLoggedIn') === 'true');
+    </script>
+</body>
+</html>
